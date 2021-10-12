@@ -1,6 +1,6 @@
 /*
  * Pico Game Controller
- * @author SpeedyPotato
+ * @author Appri Custom Technologies based on Pico Game Controller from SpeedyPotato
  */
 
 #include <stdio.h>

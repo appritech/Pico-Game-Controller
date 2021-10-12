@@ -454,7 +454,7 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
                            hid_report_type_t report_type, uint8_t const* buffer,
                            uint16_t bufsize) {
   (void)itf;
-  if (report_id == 2 && report_type == HID_REPORT_TYPE_OUTPUT &&
+  if (report_id == REPORT_ID_LIGHTS && report_type == HID_REPORT_TYPE_OUTPUT &&
       buffer[0] == 2 && bufsize >= sizeof(lights_report))  // light data
   {
     size_t i = 0;

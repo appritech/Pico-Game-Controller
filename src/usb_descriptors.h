@@ -22,30 +22,48 @@ enum {
 // Joystick Report Descriptor Template - Based off Drewol/rp2040-gamecon
 // 11 Button Map | X | Y
 #define GAMECON_REPORT_DESC_JOYSTICK(...)                                      \
-  HID_USAGE_PAGE(HID_USAGE_PAGE_DESKTOP),                                      \
-      HID_USAGE(HID_USAGE_DESKTOP_JOYSTICK),                                   \
+  HID_USAGE_PAGE(HID_USAGE_PAGE_DESKTOP),          /* General Type */          \
+      HID_USAGE(HID_USAGE_DESKTOP_JOYSTICK),  /* Call it a joystick for now */ \
       HID_COLLECTION(HID_COLLECTION_APPLICATION),                              \
-      __VA_ARGS__ HID_USAGE_PAGE(HID_USAGE_PAGE_BUTTON), HID_USAGE_MIN(1),     \
+      __VA_ARGS__ HID_USAGE_PAGE(HID_USAGE_PAGE_BUTTON),   /* Buttons first*/  \
+      HID_USAGE_MIN(1),                                                        \
       HID_USAGE_MAX(11), /*11 buttons*/                                        \
-      HID_LOGICAL_MIN(0), HID_LOGICAL_MAX(1), HID_REPORT_COUNT(11),            \
-      HID_REPORT_SIZE(1), HID_INPUT(HID_DATA | HID_VARIABLE | HID_ABSOLUTE),   \
-      HID_REPORT_COUNT(1), HID_REPORT_SIZE(5), /*Padding*/                     \
+      HID_LOGICAL_MIN(0),            /* min possible value*/                   \
+      HID_LOGICAL_MAX(1),           /* max possible value*/                    \
+      HID_REPORT_COUNT(11),                 /* 11 data items */                \
+      HID_REPORT_SIZE(1),                  /* 1 bit each */                    \
+      HID_INPUT(HID_DATA | HID_VARIABLE | HID_ABSOLUTE),    /* to host*/       \
+      /*data - not constant, variable = not array, absolute = not relative */  \
+      HID_REPORT_COUNT(1),                                                     \
+      HID_REPORT_SIZE(5), /*Padding to byte boundary */                        \
       HID_INPUT(HID_CONSTANT | HID_VARIABLE | HID_ABSOLUTE),                   \
-      HID_USAGE_PAGE(HID_USAGE_PAGE_DESKTOP), HID_LOGICAL_MIN(0x00),           \
+      /* Constant, non-array, not-relative - ie boring as unused */            \
+      HID_USAGE_PAGE(HID_USAGE_PAGE_DESKTOP),   /* desktop coords*/            \
+      HID_LOGICAL_MIN(0x00),                                                   \
       HID_LOGICAL_MAX_N(0x00ff, 2),                                            \
       HID_USAGE(HID_USAGE_DESKTOP_X), /*Joystick*/                             \
-      HID_USAGE(HID_USAGE_DESKTOP_Y), HID_REPORT_COUNT(2), HID_REPORT_SIZE(8), \
-      HID_INPUT(HID_DATA | HID_VARIABLE | HID_ABSOLUTE), HID_COLLECTION_END
+      HID_USAGE(HID_USAGE_DESKTOP_Y),                                          \
+      HID_REPORT_COUNT(2),                                                     \
+      HID_REPORT_SIZE(8),                                                      \
+      HID_INPUT(HID_DATA | HID_VARIABLE | HID_ABSOLUTE),                       \
+      HID_COLLECTION_END
 
 // 11 Light Map
 #define GAMECON_REPORT_DESC_LIGHTS(...)                                        \
-  HID_USAGE_PAGE(HID_USAGE_PAGE_DESKTOP), HID_USAGE(0x00),                     \
+  HID_USAGE_PAGE(HID_USAGE_PAGE_DESKTOP),                                      \
+      HID_USAGE(0x00),                                                         \
       HID_COLLECTION(HID_COLLECTION_APPLICATION),                              \
       __VA_ARGS__ HID_REPORT_COUNT(16), /*10 button lights + 2 RGB Sets*/      \
-      HID_REPORT_SIZE(8), HID_LOGICAL_MIN(0x00), HID_LOGICAL_MAX_N(0x00ff, 2), \
-      HID_USAGE_PAGE(HID_USAGE_PAGE_ORDINAL), HID_STRING_MINIMUM(4),           \
-      HID_STRING_MAXIMUM(16), HID_USAGE_MIN(1), HID_USAGE_MAX(16),             \
-      HID_OUTPUT(HID_DATA | HID_VARIABLE | HID_ABSOLUTE), HID_REPORT_COUNT(1), \
+      HID_REPORT_SIZE(8),                                                      \
+      HID_LOGICAL_MIN(0x00),                                                   \
+      HID_LOGICAL_MAX_N(0x00ff, 2),                                            \
+      HID_USAGE_PAGE(HID_USAGE_PAGE_ORDINAL),                                  \
+      HID_STRING_MINIMUM(4),                                                   \
+      HID_STRING_MAXIMUM(16),                                                  \
+      HID_USAGE_MIN(1),                                                        \
+      HID_USAGE_MAX(16),                                                       \
+      HID_OUTPUT(HID_DATA | HID_VARIABLE | HID_ABSOLUTE),                      \
+      HID_REPORT_COUNT(1),                                                     \
       HID_REPORT_SIZE(8), /*Padding*/                                          \
       HID_INPUT(HID_CONSTANT | HID_VARIABLE | HID_ABSOLUTE),                   \
       HID_COLLECTION_END

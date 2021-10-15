@@ -132,6 +132,17 @@ void ws2812b_update(uint32_t counter) {
   }
 }
 
+
+// Flash - use for debugging to see where code is reached
+void flashLED()
+{
+  gpio_put(25,0);  // if already off, this won't matter
+  sleep_ms(500);
+  gpio_put(25,1);     
+  sleep_ms(500);
+  gpio_put(25,0);     
+}
+
 /**
  * HID/Reactive Lights
  **/
@@ -454,14 +465,28 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
                            hid_report_type_t report_type, uint8_t const* buffer,
                            uint16_t bufsize) {
   (void)itf;
-  if (report_id == REPORT_ID_LIGHTS && report_type == HID_REPORT_TYPE_OUTPUT &&
-      buffer[0] == 2 && bufsize >= sizeof(lights_report))  // light data
+  flashLED();
+
+ // if (report_id == 2 && report_type == HID_REPORT_TYPE_OUTPUT &&
+ //     buffer[0] == 2 && bufsize >= sizeof(lights_report))  // light data
+  if (report_id == 2 && report_type == HID_REPORT_TYPE_OUTPUT )   // report 1 if part of "joystick"
   {
-    size_t i = 0;
-    for (i; i < sizeof(lights_report); i++) {
-      lights_report.raw[i] = buffer[i + 1];
+
+    flashLED();
+    //if ( buffer[0] == 2) //?? why was this needed
+    {
+      flashLED();
+      if (bufsize >= sizeof(lights_report))  // light data
+      {
+
+        flashLED();
+        size_t i = 0;
+        for (i; i < sizeof(lights_report); i++) {
+          lights_report.raw[i] = buffer[i + 1];
+        }
+        reactive_timeout_count = 0;
+        leds_changed = true;
+      }
     }
-    reactive_timeout_count = 0;
-    leds_changed = true;
   }
 }

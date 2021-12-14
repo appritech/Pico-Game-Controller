@@ -13,6 +13,7 @@
 #include "hardware/dma.h"
 #include "hardware/irq.h"
 #include "hardware/pio.h"
+#include "hardware/adc.h"
 #include "pico/multicore.h"
 #include "pico/stdlib.h"
 #include "tusb.h"
@@ -22,6 +23,7 @@
 #define SW_GPIO_SIZE 11               // Number of switches
 #define LED_GPIO_SIZE 10              // Number of switches
 #define ENC_GPIO_SIZE 2               // Number of encoders
+#define ADC_GPIO_SIZE 3               // Number of analogs
 #define ENC_PPR 600                   // Encoder PPR
 #define ENC_DEBOUNCE true             // Encoder Debouncing
 #define ENC_PULSE (ENC_PPR * 4)       // 4 pulses per PPR
@@ -58,6 +60,10 @@ bool sw_changed;
 
 bool leds_changed;
 unsigned long reactive_timeout_count = REACTIVE_TIMEOUT_MAX;
+
+bool adc_changed;
+uint8_t adc_val[ADC_GPIO_SIZE];
+uint8_t prev_adc_val[ADC_GPIO_SIZE];
 
 void (*loop_mode)();
 
@@ -172,8 +178,9 @@ void update_lights() {
 
 struct report {
   uint16_t buttons;
-  uint8_t joy0;
-  uint8_t joy1;
+  uint8_t adc0;
+  uint8_t adc1;
+  //uint8_t adc2;     // Changing the size of the report is breaking it for now - need to look further
 } report;
 
 /**
@@ -192,6 +199,17 @@ void joy_mode() {
       report.buttons = translate_buttons;
       sw_changed = false;
     }
+/*    if (adc_changed)
+    {
+        send_report = true;   // seems to be over-sending, what if we just send when buttons pressed for the moment
+        report.adc0 = 3;     // just use these two for the moment
+        report.adc1 = 5;
+        //prev_adc_val[0] = adc_val[0];
+        //prev_adc_val[1] = adc_val[1];
+        //prev_adc_val[2] = adc_val[2];
+        adc_changed = false;
+    }*/
+/*
     if (enc_changed) {
       send_report = true;
 
@@ -224,12 +242,14 @@ void joy_mode() {
         prev_enc_val[i] = enc_val[i];
       }
 
-      report.joy0 = ((double)cur_enc_val[0] / ENC_PULSE) * 256;
-      report.joy1 = ((double)cur_enc_val[1] / ENC_PULSE) * 256;
+      report.adc0 = ((double)cur_enc_val[0] / ENC_PULSE) * 256;
+      report.adc1 = ((double)cur_enc_val[1] / ENC_PULSE) * 256;
+      //report.adc2 = 0;
       enc_changed = false;
-    }
+    }*/
 
     if (send_report) {
+      //flashLED();
       tud_hid_n_report(0x00, REPORT_ID_JOYSTICK, &report, sizeof(report));
     }
   }
@@ -297,6 +317,15 @@ void key_mode() {
   }
 }
 
+
+union converted16{
+        struct{
+                uint8_t lsb;
+                uint8_t msb;
+        }raw;
+        uint16_t data;
+
+}mynumber;
 /**
  * Update Input States
  **/
@@ -308,6 +337,19 @@ void update_inputs() {
       break;
     }
   }
+/*  for (int i = 0; i < ADC_GPIO_SIZE; i++) {
+    //adc_select_input(i);
+    //mynumber.data = adc_read();
+    //full = (full >> 8) & 0xFF;  // MSBs
+    //adc_val[i] =  (uint8_t)(full >> 8) ;   
+    //adc_val[i] =  mynumber.raw.msb ;   
+    adc_val[i] = i;   // Just a FUDGE value for now
+    if (adc_val[i] != prev_adc_val[i]) {
+      flashLED();
+      adc_changed = true;
+      break;
+    }
+  }*/
   // Switch Update & Flag
   for (int i = 0; i < SW_GPIO_SIZE; i++) {
     if (gpio_get(SW_GPIO[i])) {
@@ -349,6 +391,14 @@ void init() {
   gpio_init(25);
   gpio_set_dir(25, GPIO_OUT);
   gpio_put(25, 1);
+
+  // Analog inputs
+  adc_init();
+  adc_gpio_init(26);
+  adc_gpio_init(27);
+  adc_gpio_init(28);
+  adc_changed = false;
+  adc_select_input(0);    
 
   // Set up the state machine for encoders
   pio = pio0;
@@ -399,10 +449,15 @@ void init() {
     gpio_set_dir(LED_GPIO[i], GPIO_OUT);
   }
 
+
   // Set listener bools
   enc_changed = false;
   sw_changed = false;
   leds_changed = false;
+  adc_changed = false;
+
+        report.adc0 = 2;     // just use these two for the moment
+        report.adc1 = 4;
 
   // Joy/KB Mode Switching
   if (gpio_get(SW_GPIO[0])) {
@@ -436,7 +491,7 @@ int main(void) {
   while (1) {
     tud_task();  // tinyusb device task
     update_inputs();
-    loop_mode();
+    loop_mode();    // Joy_mode usually
     update_lights();
   }
 
@@ -465,17 +520,17 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
                            hid_report_type_t report_type, uint8_t const* buffer,
                            uint16_t bufsize) {
   (void)itf;
-  flashLED();
+  //flashLED();
 
  // if (report_id == 2 && report_type == HID_REPORT_TYPE_OUTPUT &&
  //     buffer[0] == 2 && bufsize >= sizeof(lights_report))  // light data
   if (report_id == 2 && report_type == HID_REPORT_TYPE_OUTPUT )   // report 1 if part of "joystick"
   {
 
-    flashLED();
+    //flashLED();
     //if ( buffer[0] == 2) //?? why was this needed
     {
-      flashLED();
+      //flashLED();
       if (bufsize >= sizeof(lights_report))  // light data
       {
 

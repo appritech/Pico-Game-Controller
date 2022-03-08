@@ -123,7 +123,8 @@ uint8_t const* tud_descriptor_configuration_cb(uint8_t index) {
 //--------------------------------------------------------------------+
 
 // array of pointer to string descriptors
-char const* string_desc_arr[] = {
+char const* string_desc_arr[] = 
+{
     (const char[]){0x09, 0x04},  // 0: is supported language is English (0x0409)
     "Appri Custom Technologies",              // 1: Manufacturer
     "Pico Pigeon",               // 2: Product
@@ -151,15 +152,19 @@ static uint16_t _desc_str[64];
 // Invoked when received GET STRING DESCRIPTOR request
 // Application return pointer to descriptor, whose contents must exist long
 // enough for transfer to complete
-uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
+uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) 
+{
   (void)langid;
 
   uint8_t chr_count;
 
-  if (index == 0) {
+  if (index == 0) 
+  {
     memcpy(&_desc_str[1], string_desc_arr[0], 2);
     chr_count = 1;
-  } else {
+  } 
+  else 
+  {
     // Note: the 0xEE index string is a Microsoft OS 1.0 Descriptors.
     // https://docs.microsoft.com/en-us/windows-hardware/drivers/usbcon/microsoft-defined-usb-descriptors
 
@@ -173,7 +178,8 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
     if (chr_count > 63) chr_count = 63;
 
     // Convert ASCII string into UTF-16
-    for (uint8_t i = 0; i < chr_count; i++) {
+    for (uint8_t i = 0; i < chr_count; i++) 
+    {
       _desc_str[1 + i] = str[i];
     }
   }

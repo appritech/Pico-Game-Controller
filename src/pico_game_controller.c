@@ -184,6 +184,8 @@ void update_lights()
   
   if (leds_changed) 
   {
+    //reactive_timeout_count = 0;   // just kill this for the moment and see what happens
+
     // just show this once, not every option
     if (reactive_timeout_count >= REACTIVE_TIMEOUT_MAX) 
     {
@@ -533,10 +535,10 @@ void init()
   report.adc1 = 4;
 
   // Joy/KB Mode Switching
-  if (gpio_get(SW_GPIO[0])) 
-  {
+  // if (gpio_get(SW_GPIO[0])) 
+  // {
     loop_mode = &joy_mode;
-  } 
+  // } 
   /*else {
     loop_mode = &key_mode;
   }
@@ -622,9 +624,9 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
 
         flashLED(1);
         size_t i = 0;
-        for (i; i < sizeof(lights_report); i++) 
+        for (i = 0; i < sizeof(lights_report); i++) 
         {
-          lights_report.raw[i] = buffer[i + 1];
+          lights_report.raw[i] = buffer[i + 2];   // increased this to +2 as seemed to be one out (maybe ignoring datatype?)
         }
         reactive_timeout_count = 0;
         leds_changed = true;

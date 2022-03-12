@@ -66,7 +66,10 @@ bool prev_sw_val[SW_GPIO_SIZE];
 bool sw_changed;
 
 bool leds_changed;
-unsigned long reactive_timeout_count = REACTIVE_TIMEOUT_MAX;
+//unsigned long reactive_timeout_count = REACTIVE_TIMEOUT_MAX;
+unsigned long reactive_timeout_count = 0;   // problem if this is called immediately on starting & a switch is in - see what happens removing it
+unsigned long old_reactive_timeout_count = 0;   // problem if this is called immediately on starting & a switch is in - see what happens removing it
+unsigned long report_timer_count = 0;   // counter for how frequently to send the report
 
 bool adc_changed;
 uint8_t adc_val[ADC_GPIO_SIZE];
@@ -180,13 +183,18 @@ void update_lights()
   if (reactive_timeout_count < REACTIVE_TIMEOUT_MAX) 
   {
     reactive_timeout_count++;
+    if (reactive_timeout_count > 50000 && old_reactive_timeout_count < 50000)
+    {
+      flashLED(3);
+    }
+    old_reactive_timeout_count= reactive_timeout_count;
   }
   
   if (leds_changed) 
   {
     //reactive_timeout_count = 0;   // just kill this for the moment and see what happens
 
-    // just show this once, not every option
+/*    // just show this once, not every option
     if (reactive_timeout_count >= REACTIVE_TIMEOUT_MAX) 
     {
       flashLED(4);
@@ -195,6 +203,7 @@ void update_lights()
     {
       flashLED(2);
     }
+    */
     for (int i = 0; i < LED_GPIO_SIZE; i++) 
     {
       
@@ -215,7 +224,9 @@ void update_lights()
         if (lights_report.lights.buttons[i] == 0) 
         {
           gpio_put(LED_GPIO[i], 0);
-        } else {
+        } 
+        else 
+        {
           gpio_put(LED_GPIO[i], 1);
         }
       }
@@ -249,6 +260,13 @@ void joy_mode() {
       report.buttons = translate_buttons;
       sw_changed = false;
     }
+    report_timer_count ++;
+    if (report_timer_count > 100)    // send it every so often anyway, as unity is expecting continuous reports
+    {
+      send_report = true;
+      flashLED(1);
+    }
+
 /*    if (adc_changed)
     {
         send_report = true;   // seems to be over-sending, what if we just send when buttons pressed for the moment
@@ -302,6 +320,7 @@ void joy_mode() {
     {
       //flashLED();
       tud_hid_n_report(0x00, REPORT_ID_JOYSTICK, &report, sizeof(report));
+      report_timer_count = 0;   // we sent, so reset the wait
     }
   }
 }
@@ -616,7 +635,7 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
   {
 
     //flashLED();
-    //if ( buffer[0] == 2) //?? why was this needed
+    //if ( buffer[0] == 2) //?? do we need to check for a set report type??
     {
       //flashLED();
       if (bufsize >= sizeof(lights_report))  // light data

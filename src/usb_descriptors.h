@@ -22,7 +22,7 @@ enum {
 // Joystick Report Descriptor Template - Based off Drewol/rp2040-gamecon
 // 11 Button Map | X | Y
 #define GAMECON_REPORT_DESC_JOYSTICK(...)                                      \
-  HID_USAGE_PAGE(HID_USAGE_PAGE_DESKTOP),          /* General Type */          \
+  HID_USAGE_PAGE(HID_USAGE_PAGE_SIMULATE),          /* Simulation Type */      \
       HID_USAGE(0x00),  /* Call it custom rather than joystick*/               \
       HID_COLLECTION(HID_COLLECTION_APPLICATION),                              \
       __VA_ARGS__ HID_USAGE_PAGE(HID_USAGE_PAGE_BUTTON),   /* Buttons first*/  \
@@ -66,7 +66,7 @@ enum {
 
 // 11 Light Map
 #define GAMECON_REPORT_DESC_LIGHTS(...)                                        \
-  HID_USAGE_PAGE(HID_USAGE_PAGE_DESKTOP),                                      \
+  HID_USAGE_PAGE(HID_USAGE_PAGE_SIMULATE),                                      \
       HID_USAGE(0x00),                                                         \
       HID_COLLECTION(HID_COLLECTION_APPLICATION),                              \
       __VA_ARGS__ HID_REPORT_COUNT(18), /*12 button lights + 2 RGB Sets*/      \

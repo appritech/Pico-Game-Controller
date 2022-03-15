@@ -139,12 +139,12 @@ char const* string_desc_arr[] =
     "Button 8",
     "Button 9",
     "Button 10",
-    "Red 1",
-    "Green 1",
-    "Blue 1",
-    "Red 2",
-    "Green 2",
-    "Blue 2",
+    "Button 11",
+    "x1",
+    "x2",
+    "x3",
+    "x4",
+    "x5",
 };
 
 static uint16_t _desc_str[64];

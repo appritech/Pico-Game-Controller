@@ -75,7 +75,7 @@ bool adc_changed;
 uint8_t adc_val[ADC_GPIO_SIZE];
 uint8_t prev_adc_val[ADC_GPIO_SIZE];
 
-uint8_t LED_On;    // debug tracker
+uint8_t LED_OnCount;    // debug tracker
 
 void (*loop_mode)();
 
@@ -168,24 +168,24 @@ void flashLED(int count)
   for (int i = 0; i < count; i++)
   {
   gpio_put(25,0);  // if already off, this won't matter
-  LED_On = 0;
+  LED_OnCount = 0;
   sleep_ms(250);
   gpio_put(25,1);
-  LED_On = 100;     
+  LED_OnCount = 200;     
   sleep_ms(300);
  }
   gpio_put(25,0);     // ensure it is off at the 
-  LED_On = 0;
+  LED_OnCount = 0;
   sleep_ms(500);      // and add a gap to show space between patterns 
 }
 
 // quick debug flash so not slowing it down but alternate every 10 ms so visible
 void flipLED()
 {
-  LED_On ++;
-  if (LED_On >= 100)
-    LED_On = 0;
-  gpio_put(25,LED_On>=50);     // ensure it is off at the end
+  LED_OnCount ++;
+  if (LED_OnCount >= 200)
+    LED_OnCount = 0;
+  gpio_put(25,LED_OnCount>=100);     // ensure it is off at the end
 
 }
 
@@ -194,7 +194,7 @@ void flipLED()
  **/
 void update_lights() 
 {
-  
+  /*
   if (reactive_timeout_count < REACTIVE_TIMEOUT_MAX) 
   {
     reactive_timeout_count++;
@@ -204,7 +204,8 @@ void update_lights()
     }
     old_reactive_timeout_count= reactive_timeout_count;
   }
-  
+  */
+
   if (leds_changed) 
   {
     //reactive_timeout_count = 0;   // just kill this for the moment and see what happens
@@ -222,7 +223,7 @@ void update_lights()
     for (int i = 0; i < LED_GPIO_SIZE; i++) 
     {
       
-      if (reactive_timeout_count >= REACTIVE_TIMEOUT_MAX) 
+      /*if (reactive_timeout_count >= REACTIVE_TIMEOUT_MAX) 
       {
         if (sw_val[i]) 
         {
@@ -235,6 +236,7 @@ void update_lights()
         reactive_timeout_count = 0;     // will be reset if it is needed again
       } 
       else 
+      */
       {
         if (lights_report.lights.buttons[i] == 0) 
         {
@@ -260,15 +262,17 @@ struct report {
 /**
  * Gamepad Mode
  **/
-void joy_mode() {
+void joy_mode() 
+{
   if (tud_hid_ready()) 
   {
     bool send_report = false;
     if (sw_changed) 
     {
-      send_report = true;
+      //send_report = true;
       uint16_t translate_buttons = 0;
-      for (int i = SW_GPIO_SIZE - 1; i >= 0; i--) {
+      for (int i = SW_GPIO_SIZE - 1; i >= 0; i--) 
+      {
         translate_buttons = (translate_buttons << 1) | (sw_val[i] ? 1 : 0);
         prev_sw_val[i] = sw_val[i];
       }
@@ -288,10 +292,9 @@ void joy_mode() {
     }
 
     report_timer_count ++;
-    if (report_timer_count > 30)    // send it every so often anyway, as unity is expecting continuous reports but too often will kill the board 
+    if (report_timer_count > 300)    // send it every so often anyway, as unity is expecting continuous reports but too often will kill the board 
     {
       send_report = true;
-      flipLED();    // don't use the pausing version here
     }
 
 
@@ -339,6 +342,7 @@ void joy_mode() {
       //flashLED();
       tud_hid_n_report(0x00, REPORT_ID_JOYSTICK, &report, sizeof(report));
       report_timer_count = 0;   // we sent, so reset the wait
+      flipLED();    // don't use the pausing version here
     }
   }
 }
@@ -664,7 +668,7 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
       if (bufsize >= sizeof(lights_report))  // light data
       {
 
-        flashLED(1);
+        //flashLED(1);
         size_t i = 0;
         for (i = 0; i < sizeof(lights_report); i++) 
         {

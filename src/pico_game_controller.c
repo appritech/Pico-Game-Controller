@@ -23,7 +23,7 @@
 #define SW_GPIO_SIZE 11               // Number of switches
 #define LED_GPIO_SIZE 12              // Number of LEDs
 #define ENC_GPIO_SIZE 2               // Number of encoders
-#define ADC_GPIO_SIZE 3               // Number of analogs
+#define ADC_GPIO_SIZE 2               // Number of analogs
 #define ENC_PPR 600                   // Encoder PPR
 #define ENC_DEBOUNCE true             // Encoder Debouncing
 #define ENC_PULSE (ENC_PPR * 4)       // 4 pulses per PPR
@@ -74,6 +74,8 @@ unsigned long report_timer_count = 0;   // counter for how frequently to send th
 bool adc_changed;
 uint8_t adc_val[ADC_GPIO_SIZE];
 uint8_t prev_adc_val[ADC_GPIO_SIZE];
+
+uint8_t LED_On;    // debug tracker
 
 void (*loop_mode)();
 
@@ -166,12 +168,25 @@ void flashLED(int count)
   for (int i = 0; i < count; i++)
   {
   gpio_put(25,0);  // if already off, this won't matter
+  LED_On = 0;
   sleep_ms(250);
-  gpio_put(25,1);     
-  sleep_ms(500);
+  gpio_put(25,1);
+  LED_On = 100;     
+  sleep_ms(300);
  }
-  gpio_put(25,0);     // ensure it is off at the end
+  gpio_put(25,0);     // ensure it is off at the 
+  LED_On = 0;
   sleep_ms(500);      // and add a gap to show space between patterns 
+}
+
+// quick debug flash so not slowing it down but alternate every 10 ms so visible
+void flipLED()
+{
+  LED_On ++;
+  if (LED_On >= 100)
+    LED_On = 0;
+  gpio_put(25,LED_On>=50);     // ensure it is off at the end
+
 }
 
 /**
@@ -260,23 +275,26 @@ void joy_mode() {
       report.buttons = translate_buttons;
       sw_changed = false;
     }
-    report_timer_count ++;
-    if (report_timer_count > 100)    // send it every so often anyway, as unity is expecting continuous reports
-    {
-      send_report = true;
-      flashLED(1);
-    }
 
-/*    if (adc_changed)
+    if (adc_changed)
     {
-        send_report = true;   // seems to be over-sending, what if we just send when buttons pressed for the moment
-        report.adc0 = 3;     // just use these two for the moment
-        report.adc1 = 5;
-        //prev_adc_val[0] = adc_val[0];
-        //prev_adc_val[1] = adc_val[1];
+        //send_report = true;   // seems to be over-sending, what if we just send when buttons send for the moment
+        report.adc0 = adc_val[0];     // just use these two for the moment
+        report.adc1 = adc_val[1];
+        prev_adc_val[0] = adc_val[0];
+        prev_adc_val[1] = adc_val[1];
         //prev_adc_val[2] = adc_val[2];
         adc_changed = false;
-    }*/
+    }
+
+    report_timer_count ++;
+    if (report_timer_count > 30)    // send it every so often anyway, as unity is expecting continuous reports but too often will kill the board 
+    {
+      send_report = true;
+      flipLED();    // don't use the pausing version here
+    }
+
+
 /*
     if (enc_changed) {
       send_report = true;
@@ -414,19 +432,23 @@ void update_inputs() {
     }
   }
   */
-/*  for (int i = 0; i < ADC_GPIO_SIZE; i++) {
-    //adc_select_input(i);
+  for (int i = 0; i < ADC_GPIO_SIZE; i++) 
+  {
+    adc_select_input(i);
     //mynumber.data = adc_read();
     //full = (full >> 8) & 0xFF;  // MSBs
     //adc_val[i] =  (uint8_t)(full >> 8) ;   
     //adc_val[i] =  mynumber.raw.msb ;   
-    adc_val[i] = i;   // Just a FUDGE value for now
-    if (adc_val[i] != prev_adc_val[i]) {
-      flashLED();
+    adc_val[i] = adc_read();
+    //adc_val[i] = prev_adc_val[i] + i;   // Just a FUDGE value for now
+    if (adc_val[i] != prev_adc_val[i])
+    {
+      //flashLED(3);
       adc_changed = true;
       break;
     }
-  }*/
+  }
+
   // Switch Update & Flag
   for (int i = 0; i < SW_GPIO_SIZE; i++) 
   {
@@ -550,8 +572,8 @@ void init()
   leds_changed = false;
   adc_changed = false;
 
-  report.adc0 = 2;     // just use these two for the moment
-  report.adc1 = 4;
+  report.adc0 = 6;     // just use these two for the moment
+  report.adc1 = 37;
 
   // Joy/KB Mode Switching
   // if (gpio_get(SW_GPIO[0])) 
@@ -571,7 +593,8 @@ void init()
 /**
  * Second Core Runnable
  **/
-void core1_entry() {
+void core1_entry()
+{
   /* Removed encoders for now
   uint32_t counter = 0;
   while (1) {

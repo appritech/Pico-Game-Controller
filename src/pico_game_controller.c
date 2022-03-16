@@ -293,7 +293,7 @@ void joy_mode()
     }
 
     report_timer_count ++;
-    if (report_timer_count > 300)    // send it every so often anyway, as unity is expecting continuous reports but too often will kill the board 
+    if (report_timer_count > 1000)    // send it every so often anyway, as unity is expecting continuous reports but too often will kill the board 
     {
       send_report = true;
     }

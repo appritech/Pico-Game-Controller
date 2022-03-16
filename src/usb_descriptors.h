@@ -33,17 +33,20 @@ enum {
       HID_REPORT_COUNT(11),                 /* 11 data items */                \
       HID_REPORT_SIZE(1),                  /* 1 bit each */                    \
       HID_INPUT(HID_DATA | HID_VARIABLE | HID_ABSOLUTE),    /* to host*/       \
+                                                                               \
       /*data - not constant, variable = not array, absolute = not relative */  \
       HID_REPORT_COUNT(1),                                                     \
       HID_REPORT_SIZE(5), /*Padding to byte boundary */                        \
       HID_INPUT(HID_CONSTANT | HID_VARIABLE | HID_ABSOLUTE),                   \
       /* Constant, non-array, not-relative - ie boring as unused */            \
+                                                                               \
       HID_USAGE_PAGE(HID_USAGE_PAGE_DESKTOP),   /* desktop coords*/            \
       HID_LOGICAL_MIN(0x00),                                                   \
       HID_LOGICAL_MAX_N(0x00ff, 2),                                            \
       HID_USAGE(HID_USAGE_DESKTOP_X), /*Joystick*/                             \
       HID_USAGE(HID_USAGE_DESKTOP_Y),                                          \
-      HID_REPORT_COUNT(2),                                                     \
+      /*HID_USAGE(HID_USAGE_DESKTOP_VZ),   */                                  \
+      HID_REPORT_COUNT(4),   /* 3 ADCs but the report size requires 4*/        \
       HID_REPORT_SIZE(8),                                                      \
       HID_INPUT(HID_DATA | HID_VARIABLE | HID_ABSOLUTE),                       \
       /* Adding LEDs below */                                                  \

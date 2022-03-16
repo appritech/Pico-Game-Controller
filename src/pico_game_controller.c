@@ -23,7 +23,7 @@
 #define SW_GPIO_SIZE 11               // Number of switches
 #define LED_GPIO_SIZE 12              // Number of LEDs
 #define ENC_GPIO_SIZE 2               // Number of encoders
-#define ADC_GPIO_SIZE 2               // Number of analogs
+#define ADC_GPIO_SIZE 3               // Number of analogs
 #define ENC_PPR 600                   // Encoder PPR
 #define ENC_DEBOUNCE true             // Encoder Debouncing
 #define ENC_PULSE (ENC_PPR * 4)       // 4 pulses per PPR
@@ -256,7 +256,7 @@ struct report {
   uint16_t buttons;
   uint8_t adc0;
   uint8_t adc1;
-  //uint8_t adc2;     // Changing the size of the report is breaking it for now - need to look further
+  uint8_t adc2;     // Changing the size of the report is breaking it for now - need to look further
 } report;
 
 /**
@@ -283,11 +283,12 @@ void joy_mode()
     if (adc_changed)
     {
         //send_report = true;   // seems to be over-sending, what if we just send when buttons send for the moment
-        report.adc0 = adc_val[0];     // just use these two for the moment
+        report.adc0 = adc_val[0];    
         report.adc1 = adc_val[1];
+        report.adc2 = adc_val[2];
         prev_adc_val[0] = adc_val[0];
         prev_adc_val[1] = adc_val[1];
-        //prev_adc_val[2] = adc_val[2];
+        prev_adc_val[2] = adc_val[2];
         adc_changed = false;
     }
 
@@ -343,6 +344,12 @@ void joy_mode()
       tud_hid_n_report(0x00, REPORT_ID_JOYSTICK, &report, sizeof(report));
       report_timer_count = 0;   // we sent, so reset the wait
       flipLED();    // don't use the pausing version here
+      /*
+      uint8_t size = sizeof(report);
+      flashLED(1);
+      flashLED(size);
+      flashLED(2);
+      */
     }
   }
 }
@@ -424,7 +431,8 @@ union converted16{
 /**
  * Update Input States
  **/
-void update_inputs() {
+void update_inputs() 
+{
   /*  Remove encoders for now 
   // Encoder Flag
   for (int i = 0; i < ENC_GPIO_SIZE; i++) 
@@ -576,8 +584,9 @@ void init()
   leds_changed = false;
   adc_changed = false;
 
-  report.adc0 = 6;     // just use these two for the moment
+  report.adc0 = 6;     
   report.adc1 = 37;
+  report.adc2 = 5;
 
   // Joy/KB Mode Switching
   // if (gpio_get(SW_GPIO[0])) 

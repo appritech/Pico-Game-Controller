@@ -262,8 +262,6 @@ void update_lights()
           pwm_set_enabled(pwm_gpio_to_slice_num(LED_GPIO[i]), false);   // but turn them off
           gpio_set_function(LED_GPIO[i], GPIO_FUNC_SIO);    // stop PWM
  
-          if (i==11)
-            flashLED(2);
           gpio_put(LED_GPIO[i], 0);
         }
         else if (lights_report.lights.LEDs[i] == 100) 
@@ -271,8 +269,6 @@ void update_lights()
           pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50, 100); // set to highest so will start from that when changes
           pwm_set_enabled(pwm_gpio_to_slice_num(LED_GPIO[i]), false);   // but turn them off - don't need PWM at this point
           gpio_set_function(LED_GPIO[i], GPIO_FUNC_SIO);    // stop PWM
-          if (i==11)
-            flashLED(2);
           gpio_put(LED_GPIO[i], 1);
         }
         else 
@@ -283,8 +279,7 @@ void update_lights()
           //pwm_set_chan_level(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]), lights_report.lights.LEDs[i]);    // set outputs to level we read
           pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50, lights_report.lights.LEDs[i] );// set all outputs fully on for the moment - adjust as needed later
           pwm_set_enabled(pwm_gpio_to_slice_num(LED_GPIO[i]), true);   // and turn on
-          if (i==11)
-            flashLED(3);
+
         }
       }
     }
@@ -383,7 +378,7 @@ void joy_mode()
       //flashLED();
       tud_hid_n_report(0x00, REPORT_ID_JOYSTICK, &report, sizeof(report));
       report_timer_count = 0;   // we sent, so reset the wait
-      //flipLED();    // don't use the pausing version here
+      flipLED();    // don't use the pausing version here
       /*
       uint8_t size = sizeof(report);
       flashLED(1);

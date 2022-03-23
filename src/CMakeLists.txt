@@ -16,6 +16,7 @@ target_link_libraries(Pico_Game_Controller PRIVATE
         hardware_pio
         hardware_dma
         hardware_adc
-        hardware_irq)
+        hardware_irq
+        hardware_pwm)
 
 pico_add_extra_outputs(Pico_Game_Controller)

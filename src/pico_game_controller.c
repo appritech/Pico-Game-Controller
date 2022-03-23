@@ -14,6 +14,7 @@
 #include "hardware/irq.h"
 #include "hardware/pio.h"
 #include "hardware/adc.h"
+#include "hardware/pwm.h"
 #include "pico/multicore.h"
 #include "pico/stdlib.h"
 #include "tusb.h"
@@ -46,10 +47,11 @@ const uint8_t SW_KEYCODE[] = {HID_KEY_D, HID_KEY_F, HID_KEY_J, HID_KEY_K,
 const uint8_t SW_GPIO[] = {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 };
-// Changed numbers to match Pigeon OUTs and added 21 & 22
+// Changed numbers to match Pigeon OUTs 
 const uint8_t LED_GPIO[] = {
     11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22
 };
+
   /*  Remove encoders for now - NOTE: will need to check GPIO numbers if reinstate
 const uint8_t ENC_GPIO[] = {0, 2};      // L_ENC(0, 1); R_ENC(2, 3)
 const bool ENC_REV[] = {false, false};  // Reverse Encoders
@@ -85,7 +87,7 @@ typedef struct {
 
 union {
   struct {
-    uint8_t buttons[LED_GPIO_SIZE];
+    uint8_t LEDs[LED_GPIO_SIZE];
     RGB_t rgb[WS2812B_LED_ZONES];
   } lights;
   uint8_t raw[LED_GPIO_SIZE + WS2812B_LED_ZONES * 3];
@@ -189,6 +191,22 @@ void flipLED()
 
 }
 
+// see https://www.i-programmer.info/programming/hardware/14849-the-pico-in-c-basic-pwm.html?start=2
+// set up to run at frequency f, for d% of the time
+uint32_t pwm_set_freq_duty(uint slice_num, uint chan,
+                           uint32_t f, int d)
+{
+    uint32_t clock = 125000000;
+    uint32_t divider16 = clock / f / 4096 + (clock % (f * 4096) != 0);
+    if (divider16 / 16 == 0)
+        divider16 = 16;
+    uint32_t wrap = clock * 16 / divider16 / f - 1;
+    pwm_set_clkdiv_int_frac(slice_num, divider16 / 16, divider16 & 0xF);
+    pwm_set_wrap(slice_num, wrap);
+    pwm_set_chan_level(slice_num, chan, wrap * d / 100);
+    return wrap;
+}
+
 /**
  * HID/Reactive Lights
  **/
@@ -238,13 +256,35 @@ void update_lights()
       else 
       */
       {
-        if (lights_report.lights.buttons[i] == 0) 
+        if (lights_report.lights.LEDs[i] == 0) 
         {
+          pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50, 0);// set all outputs to lowest as well
+          pwm_set_enabled(pwm_gpio_to_slice_num(LED_GPIO[i]), false);   // but turn them off
+          gpio_set_function(LED_GPIO[i], GPIO_FUNC_SIO);    // stop PWM
+ 
+          if (i==11)
+            flashLED(2);
           gpio_put(LED_GPIO[i], 0);
-        } 
+        }
+        else if (lights_report.lights.LEDs[i] == 100) 
+        {
+          pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50, 100); // set to highest so will start from that when changes
+          pwm_set_enabled(pwm_gpio_to_slice_num(LED_GPIO[i]), false);   // but turn them off - don't need PWM at this point
+          gpio_set_function(LED_GPIO[i], GPIO_FUNC_SIO);    // stop PWM
+          if (i==11)
+            flashLED(2);
+          gpio_put(LED_GPIO[i], 1);
+        }
         else 
         {
           gpio_put(LED_GPIO[i], 1);
+          gpio_set_function(LED_GPIO[i], GPIO_FUNC_PWM);    // start PWM again
+
+          //pwm_set_chan_level(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]), lights_report.lights.LEDs[i]);    // set outputs to level we read
+          pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50, lights_report.lights.LEDs[i] );// set all outputs fully on for the moment - adjust as needed later
+          pwm_set_enabled(pwm_gpio_to_slice_num(LED_GPIO[i]), true);   // and turn on
+          if (i==11)
+            flashLED(3);
         }
       }
     }
@@ -343,7 +383,7 @@ void joy_mode()
       //flashLED();
       tud_hid_n_report(0x00, REPORT_ID_JOYSTICK, &report, sizeof(report));
       report_timer_count = 0;   // we sent, so reset the wait
-      flipLED();    // don't use the pausing version here
+      //flipLED();    // don't use the pausing version here
       /*
       uint8_t size = sizeof(report);
       flashLED(1);
@@ -575,6 +615,32 @@ void init()
     gpio_init(LED_GPIO[i]);
     gpio_set_dir(LED_GPIO[i], GPIO_OUT);
     gpio_pull_up(LED_GPIO[i]);
+
+    gpio_set_function(LED_GPIO[i], GPIO_FUNC_PWM);    // set them all to PWM 
+    // leave examples for hard-coding debugging for now
+    /*if (i == 11)
+    {
+      pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50,25);    // 75% at 50Mhz
+    }
+    else if (i == 0)
+    {
+      pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50,25);    // 75% at 50Mhz
+      //pwm_set_wrap(pwm_gpio_to_slice_num(LED_GPIO[i]),20);   // always wrap to 255 as that is the highest value from the commands from the PC/sourc
+      //pwm_set_chan_level(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]), 9);    // set all outputs fully on for the moment - adjust as needed later
+    }
+    else if (i == 1)
+    {
+      pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50,10);    // 75% at 50Mhz
+      //pwm_set_wrap(pwm_gpio_to_slice_num(LED_GPIO[i]),255);   // always wrap to 255 as that is the highest value from the commands from the PC/source
+      //pwm_set_chan_level(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]), 157);    // set all outputs fully on for the moment - adjust as needed later
+    }
+    else*/
+    {
+      //pwm_set_wrap(pwm_gpio_to_slice_num(LED_GPIO[i]),3);   // always wrap to 255 as that is the highest value from the commands from the PC/source
+      //pwm_set_chan_level(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]), 2);    // set all outputs fully on for the moment - adjust as needed later
+      pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50,100);// set all outputs fully on for the moment - adjust as needed later
+    }
+    pwm_set_enabled(pwm_gpio_to_slice_num(LED_GPIO[i]), false);   // but start them off
   }
 
 

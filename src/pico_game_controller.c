@@ -376,7 +376,7 @@ void joy_mode()
     if (send_report) 
     {
       //flashLED();
-      tud_hid_n_report(0x00, REPORT_ID_JOYSTICK, &report, sizeof(report));
+      tud_hid_n_report(0x00, REPORT_ID_INPUTS, &report, sizeof(report));
       report_timer_count = 0;   // we sent, so reset the wait
       flipLED();    // don't use the pausing version here
       /*

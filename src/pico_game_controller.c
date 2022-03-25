@@ -181,15 +181,7 @@ void flashLED(int count)
   sleep_ms(500);      // and add a gap to show space between patterns 
 }
 
-// quick debug flash so not slowing it down but alternate every 10 ms so visible
-void flipLED()
-{
-  LED_OnCount ++;
-  if (LED_OnCount >= 200)
-    LED_OnCount = 0;
-  gpio_put(25,LED_OnCount>=100);     // ensure it is off at the end
 
-}
 
 // see https://www.i-programmer.info/programming/hardware/14849-the-pico-in-c-basic-pwm.html?start=2
 // set up to run at frequency f, for d% of the time
@@ -205,6 +197,39 @@ uint32_t pwm_set_freq_duty(uint slice_num, uint chan,
     pwm_set_wrap(slice_num, wrap);
     pwm_set_chan_level(slice_num, chan, wrap * d / 100);
     return wrap;
+}
+
+// quick debug flash so not slowing it down but alternate every 10 ms so visible
+void flipLED()
+{
+  LED_OnCount ++;
+  if (LED_OnCount >= 200)
+    LED_OnCount = 0;
+  gpio_put(25,LED_OnCount>=100);     // flashe LED
+  if (LED_OnCount >=100)
+  {
+             gpio_set_function(11, GPIO_FUNC_PWM);    // stop PWM
+ 
+    pwm_set_freq_duty(pwm_gpio_to_slice_num(11),pwm_gpio_to_channel(11),50, 100);     // ensure it is off at the end
+    pwm_set_enabled(pwm_gpio_to_slice_num(11), true);   // and turn on
+    //pwm_set_freq_duty(pwm_gpio_to_slice_num(22),pwm_gpio_to_channel(11),50, 100);     // ensure it is off at the end
+    //pwm_set_enabled(pwm_gpio_to_slice_num(22), true);   // and turn on
+    //gpio_put(11,1);
+    //gpio_put(22,1);
+  }
+  else
+  {
+    pwm_set_freq_duty(pwm_gpio_to_slice_num(11),pwm_gpio_to_channel(11),50, 0);     // ensure it is off at the end
+    pwm_set_enabled(pwm_gpio_to_slice_num(11), false);   
+         gpio_set_function(11, GPIO_FUNC_SIO);    // stop PWM
+ 
+          gpio_put(11, 0);
+
+    //pwm_set_enabled(pwm_gpio_to_slice_num(22), false);   
+    //gpio_put(11,0);
+    //gpio_put(22,0);
+  }
+
 }
 
 /**
@@ -256,6 +281,16 @@ void update_lights()
       else 
       */
       {
+        /*if (i == 11)
+        {
+          if (lights_report.lights.LEDs[i] > 0)
+            gpio_put(LED_GPIO[i], 1);
+          else
+            gpio_put(LED_GPIO[i], 0);
+        
+        }
+        
+        else  */ 
         if (lights_report.lights.LEDs[i] == 0) 
         {
           pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50, 0);// set all outputs to lowest as well
@@ -281,6 +316,8 @@ void update_lights()
           pwm_set_enabled(pwm_gpio_to_slice_num(LED_GPIO[i]), true);   // and turn on
 
         }
+        
+
       }
     }
     leds_changed = false;
@@ -376,7 +413,7 @@ void joy_mode()
     if (send_report) 
     {
       //flashLED();
-      tud_hid_n_report(0x00, REPORT_ID_INPUTS, &report, sizeof(report));
+      tud_hid_n_report(0x00, REPORT_ID_JOYSTICK, &report, sizeof(report));
       report_timer_count = 0;   // we sent, so reset the wait
       flipLED();    // don't use the pausing version here
       /*
@@ -611,7 +648,8 @@ void init()
     gpio_set_dir(LED_GPIO[i], GPIO_OUT);
     gpio_pull_up(LED_GPIO[i]);
 
-    gpio_set_function(LED_GPIO[i], GPIO_FUNC_PWM);    // set them all to PWM 
+    //if (i < 11)    //*** set all but last one for now
+      gpio_set_function(LED_GPIO[i], GPIO_FUNC_PWM);    // set them all to PWM 
     // leave examples for hard-coding debugging for now
     /*if (i == 11)
     {
@@ -633,9 +671,9 @@ void init()
     {
       //pwm_set_wrap(pwm_gpio_to_slice_num(LED_GPIO[i]),3);   // always wrap to 255 as that is the highest value from the commands from the PC/source
       //pwm_set_chan_level(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]), 2);    // set all outputs fully on for the moment - adjust as needed later
-      pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50,100);// set all outputs fully on for the moment - adjust as needed later
+      //pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50,100);// set all outputs fully on for the moment - adjust as needed later
     }
-    pwm_set_enabled(pwm_gpio_to_slice_num(LED_GPIO[i]), false);   // but start them off
+    //pwm_set_enabled(pwm_gpio_to_slice_num(LED_GPIO[i]), false);   // but start them off
   }
 
 

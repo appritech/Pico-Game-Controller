@@ -5,10 +5,10 @@
 #include "device/usbd.h"
 
 enum {
-  REPORT_ID_INPUTS = 1,
-  REPORT_ID_OUTPUTS,
-//  REPORT_ID_KEYBOARD,
-//  REPORT_ID_MOUSE,
+  REPORT_ID_JOYSTICK = 1,
+  REPORT_ID_LIGHTS,
+  REPORT_ID_KEYBOARD,
+  REPORT_ID_MOUSE,
 };
 
 // because they are missing from tusb_hid.h
@@ -21,11 +21,11 @@ enum {
 
 // Joystick Report Descriptor Template - Based off Drewol/rp2040-gamecon
 // 11 Button Map | X | Y
-#define GAMECON_REPORT_DESC_INPUTS(...)                                        \
+#define GAMECON_REPORT_DESC_JOYSTICK(...)                                      \
   HID_USAGE_PAGE(HID_USAGE_PAGE_SIMULATE),          /* Simulation Type */      \
       HID_USAGE(0x00),  /* Call it custom rather than joystick*/               \
       HID_COLLECTION(HID_COLLECTION_APPLICATION),                              \
-      __VA_ARGS__ HID_USAGE_PAGE(HID_USAGE_PAGE_BUTTON),   /* Inputs first*/   \
+      __VA_ARGS__ HID_USAGE_PAGE(HID_USAGE_PAGE_BUTTON),   /* Buttons first*/  \
       HID_USAGE_MIN(1),                                                        \
       HID_USAGE_MAX(11), /*11 buttons*/                                        \
       HID_LOGICAL_MIN(0),            /* min possible value*/                   \
@@ -67,16 +67,12 @@ enum {
       HID_INPUT(HID_CONSTANT | HID_VARIABLE | HID_ABSOLUTE),      */             \
       HID_COLLECTION_END
 
-// Output Map - not sure this does much unless we send out what lights we think we have
-#define GAMECON_REPORT_DESC_OUTPUTS(...)                                        \
+// 11 Light Map
+#define GAMECON_REPORT_DESC_LIGHTS(...)                                        \
   HID_USAGE_PAGE(HID_USAGE_PAGE_SIMULATE),                                      \
       HID_USAGE(0x00),                                                         \
       HID_COLLECTION(HID_COLLECTION_APPLICATION),                              \
-      __VA_ARGS__ HID_USAGE_PAGE(HID_USAGE_PAGE_LED), /* call them lights*/    \
-      HID_REPORT_COUNT(1),                                                     \
-      HID_REPORT_SIZE(8), /*report type*/   /* do we really need this?? */     \
-      HID_INPUT(HID_CONSTANT | HID_VARIABLE | HID_ABSOLUTE),                   \
-      HID_REPORT_COUNT(12), /*12 outputs */                                    \
+      __VA_ARGS__ HID_REPORT_COUNT(18), /*12 button lights + 2 RGB Sets*/      \
       HID_REPORT_SIZE(8),                                                      \
       HID_LOGICAL_MIN(0x00),                                                   \
       HID_LOGICAL_MAX_N(0x00ff, 2),                                            \
@@ -86,6 +82,9 @@ enum {
       HID_USAGE_MIN(1),                                                        \
       HID_USAGE_MAX(18),                                                       \
       HID_OUTPUT(HID_DATA | HID_VARIABLE | HID_ABSOLUTE),                      \
+      HID_REPORT_COUNT(1),                                                     \
+      HID_REPORT_SIZE(8), /*Padding*/                                          \
+      HID_INPUT(HID_CONSTANT | HID_VARIABLE | HID_ABSOLUTE),                   \
       /*Add a second page here for inputs so shows in Unity*/                  \
   /*HID_USAGE_PAGE(HID_USAGE_PAGE_BUTTON),   /* Buttons first*/     /*             \
       HID_USAGE_MIN(17),                                                       \

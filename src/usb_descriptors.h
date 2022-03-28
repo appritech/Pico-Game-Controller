@@ -5,10 +5,10 @@
 #include "device/usbd.h"
 
 enum {
-  REPORT_ID_JOYSTICK = 1,
-  REPORT_ID_LIGHTS,
-  REPORT_ID_KEYBOARD,
-  REPORT_ID_MOUSE,
+  REPORT_ID_INPUTS= 1,
+  REPORT_ID_OUTPUTS,
+  //REPORT_ID_KEYBOARD,
+  //REPORT_ID_MOUSE,
 };
 
 // because they are missing from tusb_hid.h
@@ -21,7 +21,7 @@ enum {
 
 // Joystick Report Descriptor Template - Based off Drewol/rp2040-gamecon
 // 11 Button Map | X | Y
-#define GAMECON_REPORT_DESC_JOYSTICK(...)                                      \
+#define GAMECON_REPORT_DESC_INPUTS(...)                                        \
   HID_USAGE_PAGE(HID_USAGE_PAGE_SIMULATE),          /* Simulation Type */      \
       HID_USAGE(0x00),  /* Call it custom rather than joystick*/               \
       HID_COLLECTION(HID_COLLECTION_APPLICATION),                              \
@@ -43,7 +43,7 @@ enum {
       HID_USAGE_PAGE(HID_USAGE_PAGE_DESKTOP),   /* desktop coords*/            \
       HID_LOGICAL_MIN(0x00),                                                   \
       HID_LOGICAL_MAX_N(0x00ff, 2),                                            \
-      HID_USAGE(HID_USAGE_DESKTOP_X), /*Joystick*/                             \
+      HID_USAGE(HID_USAGE_DESKTOP_X), /*Joystick directions*/                  \
       HID_USAGE(HID_USAGE_DESKTOP_Y),                                          \
       /*HID_USAGE(HID_USAGE_DESKTOP_VZ),   */                                  \
       HID_REPORT_COUNT(4),   /* 3 ADCs but the report size requires 4*/        \
@@ -68,7 +68,7 @@ enum {
       HID_COLLECTION_END
 
 // 11 Light Map
-#define GAMECON_REPORT_DESC_LIGHTS(...)                                        \
+#define GAMECON_REPORT_DESC_OUTPUTS(...)                                        \
   HID_USAGE_PAGE(HID_USAGE_PAGE_SIMULATE),                                      \
       HID_USAGE(0x00),                                                         \
       HID_COLLECTION(HID_COLLECTION_APPLICATION),                              \

@@ -291,6 +291,8 @@ void update_lights()
         }
         
         else  */ 
+        // Was having issue with not always turning off properly, but seems to be okay now
+        /*
         if (lights_report.lights.LEDs[i] == 0) 
         {
           pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50, 0);// set all outputs to lowest as well
@@ -306,14 +308,15 @@ void update_lights()
           gpio_set_function(LED_GPIO[i], GPIO_FUNC_SIO);    // stop PWM
           gpio_put(LED_GPIO[i], 1);
         }
-        else 
+        else */
         {
-          gpio_put(LED_GPIO[i], 1);
-          gpio_set_function(LED_GPIO[i], GPIO_FUNC_PWM);    // start PWM again
+          //gpio_set_function(LED_GPIO[i], GPIO_FUNC_PWM);    // start PWM again
 
           //pwm_set_chan_level(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]), lights_report.lights.LEDs[i]);    // set outputs to level we read
           pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50, lights_report.lights.LEDs[i] );// set all outputs fully on for the moment - adjust as needed later
           pwm_set_enabled(pwm_gpio_to_slice_num(LED_GPIO[i]), true);   // and turn on
+
+          //gpio_put(LED_GPIO[i], 1);
 
         }
         
@@ -413,7 +416,7 @@ void joy_mode()
     if (send_report) 
     {
       //flashLED();
-      tud_hid_n_report(0x00, REPORT_ID_JOYSTICK, &report, sizeof(report));
+      tud_hid_n_report(0x00, REPORT_ID_INPUTS, &report, sizeof(report));
       report_timer_count = 0;   // we sent, so reset the wait
       flipLED();    // don't use the pausing version here
       /*
@@ -780,7 +783,7 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
         size_t i = 0;
         for (i = 0; i < sizeof(lights_report); i++) 
         {
-          lights_report.raw[i] = buffer[i + 2];   // increased this to +2 as seemed to be one out (maybe ignoring datatype?)
+          lights_report.raw[i] = buffer[i + 2];   // increased this to +2 as seemed ignore report id & datatype
         }
         reactive_timeout_count = 0;
         leds_changed = true;

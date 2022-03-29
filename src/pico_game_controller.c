@@ -25,22 +25,7 @@
 #define LED_GPIO_SIZE 12              // Number of LEDs
 #define ENC_GPIO_SIZE 2               // Number of encoders
 #define ADC_GPIO_SIZE 3               // Number of analogs
-#define ENC_PPR 600                   // Encoder PPR
-#define ENC_DEBOUNCE true             // Encoder Debouncing
-#define ENC_PULSE (ENC_PPR * 4)       // 4 pulses per PPR
-#define ENC_ROLLOVER (ENC_PULSE * 2)  // Delta Rollover threshold
 #define REACTIVE_TIMEOUT_MAX 500000  // Cycles before HID falls back to reactive
-#define WS2812B_LED_SIZE 10          // Number of WS2812B LEDs
-#define WS2812B_LED_ZONES 2          // Number of WS2812B LED Zones
-#define WS2812B_LEDS_PER_ZONE \
-  WS2812B_LED_SIZE / WS2812B_LED_ZONES  // Number of LEDs per zone
-
-/*
-// MODIFY KEYBINDS HERE, MAKE SURE LENGTHS MATCH SW_GPIO_SIZE - for KEYBOARD
-const uint8_t SW_KEYCODE[] = {HID_KEY_D, HID_KEY_F, HID_KEY_J, HID_KEY_K,
-                              HID_KEY_C, HID_KEY_M, HID_KEY_A, HID_KEY_B,
-                              HID_KEY_1, HID_KEY_E, HID_KEY_G};
-*/
 
 // Note: these are the GP numbers from the Pico
 // Changed numbers to match Pigeon GPs
@@ -52,17 +37,6 @@ const uint8_t LED_GPIO[] = {
     11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22
 };
 
-  /*  Remove encoders for now - NOTE: will need to check GPIO numbers if reinstate
-const uint8_t ENC_GPIO[] = {0, 2};      // L_ENC(0, 1); R_ENC(2, 3)
-const bool ENC_REV[] = {false, false};  // Reverse Encoders
-const uint8_t WS2812B_GPIO = 28;
-
-PIO pio, pio_1;
-uint32_t enc_val[ENC_GPIO_SIZE];
-uint32_t prev_enc_val[ENC_GPIO_SIZE];
-int cur_enc_val[ENC_GPIO_SIZE];
-bool enc_changed;
-*/
 bool sw_val[SW_GPIO_SIZE];
 bool prev_sw_val[SW_GPIO_SIZE];
 bool sw_changed;
@@ -81,94 +55,10 @@ uint8_t LED_OnCount;    // debug tracker
 
 void (*loop_mode)();
 
-/*
-typedef struct {
-  uint8_t r, g, b;
-} RGB_t;
 
-
-union {
-  struct {
-    uint8_t LEDs[LED_GPIO_SIZE];
-    RGB_t rgb[WS2812B_LED_ZONES];
-  } lights;
-  uint8_t raw[LED_GPIO_SIZE + WS2812B_LED_ZONES * 3];
-} lights_report;
-*/
-
-// Don't need  the struct either - just keep the Lights themselves
 uint8_t LEDs[LED_GPIO_SIZE];
 //bool FirstFlash;
 
-/* Hide encoders for the moment
-/**
- * WS2812B RGB Assignment
- * @param pixel_grb The pixel color to set
- **//*
-static inline void put_pixel(uint32_t pixel_grb) 
-{
-  pio_sm_put_blocking(pio1, ENC_GPIO_SIZE, pixel_grb << 8u);
-}
-
-/**
- * WS2812B RGB Format Helper
- **//*
-static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) 
-{
-  return ((uint32_t)(r) << 8) | ((uint32_t)(g) << 16) | (uint32_t)(b);
-}
-
-/**
- * 768 Color Wheel Picker
- * @param wheel_pos Color value, r->g->b->r...
- **//*
-uint32_t color_wheel(uint16_t wheel_pos) 
-{
-  wheel_pos %= 768;
-  if (wheel_pos < 256) {
-    return urgb_u32(wheel_pos, 255 - wheel_pos, 0);
-  } else if (wheel_pos < 512) {
-    wheel_pos -= 256;
-    return urgb_u32(255 - wheel_pos, 0, wheel_pos);
-  } else {
-    wheel_pos -= 512;
-    return urgb_u32(0, wheel_pos, 255 - wheel_pos);
-  }
-}
-
-/**
- * Color cycle effect
- **//*
-void ws2812b_color_cycle(uint32_t counter) 
-{
-  for (int i = 0; i < WS2812B_LED_SIZE; ++i) 
-  {
-    put_pixel(color_wheel((counter + i * (int)(768 / WS2812B_LED_SIZE)) % 768));
-  }
-}
-
-/**
- * WS2812B Lighting
- * @param counter Current number of WS2812B cycles
- **//*
-void ws2812b_update(uint32_t counter) 
-{
-  if (reactive_timeout_count >= REACTIVE_TIMEOUT_MAX) 
-  {
-    ws2812b_color_cycle(counter);
-  } else {
-    for (int i = 0; i < WS2812B_LED_ZONES; i++) 
-    {
-      for (int j = 0; j < WS2812B_LEDS_PER_ZONE; j++) 
-      {
-        put_pixel(urgb_u32(lights_report.lights.rgb[i].r,
-                           lights_report.lights.rgb[i].g,
-                           lights_report.lights.rgb[i].b));
-      }
-    }
-  }
-}
-*/
 
 
 // Flash - use for debugging to see where code is reached
@@ -212,17 +102,15 @@ void flipLED()
   LED_OnCount ++;
   if (LED_OnCount >= 200)
     LED_OnCount = 0;
-  //gpio_put(25,LED_OnCount>=100);     // flashe LED
+  gpio_put(25,LED_OnCount>=100);     // flashe LED
+  /* Test flashing PWM light as well
   if (LED_OnCount >=100)
   {
-             gpio_set_function(11, GPIO_FUNC_PWM);    // stop PWM
+    gpio_set_function(11, GPIO_FUNC_PWM);    // stop PWM
  
     pwm_set_freq_duty(pwm_gpio_to_slice_num(11),pwm_gpio_to_channel(11),50, 100);     // ensure it is off at the end
     pwm_set_enabled(pwm_gpio_to_slice_num(11), true);   // and turn on
-    //pwm_set_freq_duty(pwm_gpio_to_slice_num(22),pwm_gpio_to_channel(11),50, 100);     // ensure it is off at the end
-    //pwm_set_enabled(pwm_gpio_to_slice_num(22), true);   // and turn on
     //gpio_put(11,1);
-    //gpio_put(22,1);
   }
   else
   {
@@ -232,62 +120,21 @@ void flipLED()
  
           gpio_put(11, 0);
 
-    //pwm_set_enabled(pwm_gpio_to_slice_num(22), false);   
     //gpio_put(11,0);
-    //gpio_put(22,0);
-  }
-
-}
-
-/**
- * HID/Reactive Lights
- **/
-void update_lights() 
-{
-  /*
-  if (reactive_timeout_count < REACTIVE_TIMEOUT_MAX) 
-  {
-    reactive_timeout_count++;
-    if (reactive_timeout_count > 50000 && old_reactive_timeout_count < 50000)
-    {
-      flashLED(3);
-    }
-    old_reactive_timeout_count= reactive_timeout_count;
+    
   }
   */
 
+}
+
+void update_lights() 
+{
+
   if (leds_changed) 
   {
-    //reactive_timeout_count = 0;   // just kill this for the moment and see what happens
-
-/*    // just show this once, not every option
-    if (reactive_timeout_count >= REACTIVE_TIMEOUT_MAX) 
-    {
-      flashLED(4);
-    } 
-    else 
-    {
-      flashLED(2);
-    }
-    */
     for (int i = 0; i < LED_GPIO_SIZE; i++) 
     {
       
-      /*if (reactive_timeout_count >= REACTIVE_TIMEOUT_MAX) 
-      {
-        if (sw_val[i]) 
-        {
-          gpio_put(LED_GPIO[i], 1);
-        } 
-        else 
-        {
-          gpio_put(LED_GPIO[i], 0);
-        }
-        reactive_timeout_count = 0;     // will be reset if it is needed again
-      } 
-      else 
-      */
-      {
         /*if (i == 11)
         {
           if (lights_report.lights.LEDs[i] > 0)
@@ -328,7 +175,6 @@ void update_lights()
         }
         
 
-      }
     }
     leds_changed = false;
   }
@@ -338,12 +184,9 @@ struct report {
   uint16_t buttons;
   uint8_t adc0;
   uint8_t adc1;
-  uint8_t adc2;     // Changing the size of the report is breaking it for now - need to look further
+  uint8_t adc2;     // if report changes, need to change Unity reader
 } report;
 
-/**
- * Gamepad Mode
- **/
 void inputs_mode() 
 {
   if (tud_hid_ready()) 
@@ -381,44 +224,7 @@ void inputs_mode()
     }
 
 
-/*
-    if (enc_changed) {
-      send_report = true;
 
-      // find the delta between previous and current enc_val
-      for (int i = 0; i < ENC_GPIO_SIZE; i++) {
-        int delta;
-        int changeType;                      // -1 for negative 1 for positive
-        if (enc_val[i] > prev_enc_val[i]) {  // if the new value is bigger its
-                                             // a positive change
-          delta = enc_val[i] - prev_enc_val[i];
-          changeType = 1;
-        } else {  // otherwise its a negative change
-          delta = prev_enc_val[i] - enc_val[i];
-          changeType = -1;
-        }
-        // Overflow / Underflow
-        if (delta > ENC_ROLLOVER) {
-          // Reverse the change type due to overflow / underflow
-          changeType *= -1;
-          delta = UINT32_MAX - delta + 1;  // this should give us how much we
-                                           // overflowed / underflowed by
-        }
-
-        cur_enc_val[i] =
-            cur_enc_val[i] + ((ENC_REV[i] ? 1 : -1) * delta * changeType);
-        while (cur_enc_val[i] < 0) {
-          cur_enc_val[i] = ENC_PULSE - cur_enc_val[i];
-        }
-
-        prev_enc_val[i] = enc_val[i];
-      }
-
-      report.adc0 = ((double)cur_enc_val[0] / ENC_PULSE) * 256;
-      report.adc1 = ((double)cur_enc_val[1] / ENC_PULSE) * 256;
-      //report.adc2 = 0;
-      enc_changed = false;
-    }*/
 
     if (send_report) 
     {
@@ -426,81 +232,11 @@ void inputs_mode()
       tud_hid_n_report(0x00, REPORT_ID_INPUTS, &report, sizeof(report));
       report_timer_count = 0;   // we sent, so reset the wait
       flipLED();    // don't use the pausing version here
-      /*
-      uint8_t size = sizeof(report);
-      flashLED(1);
-      flashLED(size);
-      flashLED(2);
-      */
+
     }
   }
 }
 
-/**
- * Keyboard Mode
- **/
-/*void key_mode() {
-  if (tud_hid_ready()) {
-    /*------------- Keyboard -------------*//*
-    if (sw_changed) {
-      uint8_t nkro_report[32] = {0};
-      for (int i = 0; i < SW_GPIO_SIZE; i++) {
-        if (sw_val[i]) {
-          uint8_t bit = SW_KEYCODE[i] % 8;
-          uint8_t byte = (SW_KEYCODE[i] / 8) + 1;
-          if (SW_KEYCODE[i] >= 240 && SW_KEYCODE[i] <= 247) {
-            nkro_report[0] |= (1 << bit);
-          } else if (byte > 0 && byte <= 31) {
-            nkro_report[byte] |= (1 << bit);
-          }
-
-          prev_sw_val[i] = sw_val[i];
-        }
-      }
-      // Send key report
-      tud_hid_n_report(0x00, REPORT_ID_KEYBOARD, &nkro_report,
-                       sizeof(nkro_report));
-      sw_changed = false;
-    }
-    */
-
-    /*------------- Mouse -------------*/
-    /*
-    if (enc_changed) {
-      // Delay if needed before attempt to send mouse report
-      while (!tud_hid_ready()) {
-        board_delay(1);
-      }
-      // find the delta between previous and current enc_val
-      int delta[ENC_GPIO_SIZE] = {0};
-      for (int i = 0; i < ENC_GPIO_SIZE; i++) {
-        int changeType;                      // -1 for negative 1 for positive
-        if (enc_val[i] > prev_enc_val[i]) {  // if the new value is bigger its
-                                             // a positive change
-          delta[i] = enc_val[i] - prev_enc_val[i];
-          changeType = 1;
-        } else {  // otherwise its a negative change
-          delta[i] = prev_enc_val[i] - enc_val[i];
-          changeType = -1;
-        }
-        // Overflow / Underflow
-        if (delta[i] > ENC_ROLLOVER) {
-          // Reverse the change type due to overflow / underflow
-          changeType *= -1;
-          delta[i] =
-              UINT32_MAX - delta[i] + 1;  // this should give us how much we
-                                          // overflowed / underflowed by
-        }
-        delta[i] *= changeType * (ENC_REV[i] ? 1 : -1);  // set direction
-        prev_enc_val[i] = enc_val[i];
-      }
-      tud_hid_mouse_report(REPORT_ID_MOUSE, 0x00, delta[0], delta[1], 0, 0);
-      enc_changed = false;
-    }
-    
-  }
-}
-*/
 
 union converted16{
         struct{
@@ -515,17 +251,6 @@ union converted16{
  **/
 void update_inputs() 
 {
-  /*  Remove encoders for now 
-  // Encoder Flag
-  for (int i = 0; i < ENC_GPIO_SIZE; i++) 
-  {
-    if (enc_val[i] != prev_enc_val[i]) 
-    {
-      enc_changed = true;
-      break;
-    }
-  }
-  */
   for (int i = 0; i < ADC_GPIO_SIZE; i++) 
   {
     adc_select_input(i);
@@ -564,28 +289,6 @@ void update_inputs()
   
 }
 
-/* Hide encoders for now
-/**
- * DMA Encoder Logic For 2 Encoders
- **//*
-void dma_handler() 
-{
-  uint i = 1;
-  int interrupt_channel = 0;
-  while ((i & dma_hw->ints0) == 0) 
-  {
-    i = i << 1;
-    ++interrupt_channel;
-  }
-  dma_hw->ints0 = 1u << interrupt_channel;
-  if (interrupt_channel < 4) 
-  {
-    dma_channel_set_read_addr(interrupt_channel, &pio->rxf[interrupt_channel],
-                              true);
-  }
-}
-*/
-
 /**
  * Initialize Board Pins
  **/
@@ -604,41 +307,6 @@ void init()
   adc_changed = false;
   adc_select_input(0);    
 
-  // Set up the state machine for encoders
-  /*
-  pio = pio0;
-  uint offset = pio_add_program(pio, &encoders_program);
-
-  // Setup Encoders
-  for (int i = 0; i < ENC_GPIO_SIZE; i++) 
-  {
-    enc_val[i] = 0;
-    prev_enc_val[i] = 0;
-    cur_enc_val[i] = 0;
-    encoders_program_init(pio, i, offset, ENC_GPIO[i], ENC_DEBOUNCE);
-
-    dma_channel_config c = dma_channel_get_default_config(i);
-    channel_config_set_read_increment(&c, false);
-    channel_config_set_write_increment(&c, false);
-    channel_config_set_dreq(&c, pio_get_dreq(pio, i, false));
-
-    dma_channel_configure(i, &c,
-                          &enc_val[i],   // Destinatinon pointer
-                          &pio->rxf[i],  // Source pointer
-                          0x10,          // Number of transfers
-                          true           // Start immediately
-    );
-    irq_set_exclusive_handler(DMA_IRQ_0, dma_handler);
-    irq_set_enabled(DMA_IRQ_0, true);
-    dma_channel_set_irq0_enabled(i, true);
-  }
-
-  // Set up WS2812B
-  pio_1 = pio1;
-  uint offset2 = pio_add_program(pio_1, &ws2812_program);
-  ws2812_program_init(pio_1, ENC_GPIO_SIZE, offset2, WS2812B_GPIO, 800000,
-                      false);
-  */
 
   // Setup Button GPIO
   for (int i = 0; i < SW_GPIO_SIZE; i++) 
@@ -717,13 +385,6 @@ void init()
  **/
 void core1_entry()
 {
-  /* Removed encoders for now
-  uint32_t counter = 0;
-  while (1) {
-    ws2812b_update(++counter);
-    sleep_ms(5);
-  }
-  */
    // Consider reporting debug information from this core, or moving the light flashing here to separate it from any input delays
 }
 

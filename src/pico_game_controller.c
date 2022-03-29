@@ -81,9 +81,11 @@ uint8_t LED_OnCount;    // debug tracker
 
 void (*loop_mode)();
 
+/*
 typedef struct {
   uint8_t r, g, b;
 } RGB_t;
+
 
 union {
   struct {
@@ -92,6 +94,11 @@ union {
   } lights;
   uint8_t raw[LED_GPIO_SIZE + WS2812B_LED_ZONES * 3];
 } lights_report;
+*/
+
+// Don't need  the struct either - just keep the Lights themselves
+uint8_t LEDs[LED_GPIO_SIZE];
+//bool FirstFlash;
 
 /* Hide encoders for the moment
 /**
@@ -205,7 +212,7 @@ void flipLED()
   LED_OnCount ++;
   if (LED_OnCount >= 200)
     LED_OnCount = 0;
-  gpio_put(25,LED_OnCount>=100);     // flashe LED
+  //gpio_put(25,LED_OnCount>=100);     // flashe LED
   if (LED_OnCount >=100)
   {
              gpio_set_function(11, GPIO_FUNC_PWM);    // stop PWM
@@ -313,7 +320,7 @@ void update_lights()
           //gpio_set_function(LED_GPIO[i], GPIO_FUNC_PWM);    // start PWM again
 
           //pwm_set_chan_level(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]), lights_report.lights.LEDs[i]);    // set outputs to level we read
-          pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50, lights_report.lights.LEDs[i] );// set all outputs fully on for the moment - adjust as needed later
+          pwm_set_freq_duty(pwm_gpio_to_slice_num(LED_GPIO[i]), pwm_gpio_to_channel(LED_GPIO[i]),50, LEDs[i] );// set all outputs fully on for the moment - adjust as needed later
           pwm_set_enabled(pwm_gpio_to_slice_num(LED_GPIO[i]), true);   // and turn on
 
           //gpio_put(LED_GPIO[i], 1);
@@ -337,7 +344,7 @@ struct report {
 /**
  * Gamepad Mode
  **/
-void joy_mode() 
+void inputs_mode() 
 {
   if (tud_hid_ready()) 
   {
@@ -526,8 +533,8 @@ void update_inputs()
     //full = (full >> 8) & 0xFF;  // MSBs
     //adc_val[i] =  (uint8_t)(full >> 8) ;   
     //adc_val[i] =  mynumber.raw.msb ;   
+    // Unity will normalize the incominb values, so just read it here
     adc_val[i] = adc_read();
-    //adc_val[i] = prev_adc_val[i] + i;   // Just a FUDGE value for now
     if (adc_val[i] != prev_adc_val[i])
     {
       //flashLED(3);
@@ -693,7 +700,7 @@ void init()
   // Joy/KB Mode Switching
   // if (gpio_get(SW_GPIO[0])) 
   // {
-    loop_mode = &joy_mode;
+    loop_mode = &inputs_mode;     // only mode we are running for now
   // } 
   /*else {
     loop_mode = &key_mode;
@@ -717,6 +724,7 @@ void core1_entry()
     sleep_ms(5);
   }
   */
+   // Consider reporting debug information from this core, or moving the light flashing here to separate it from any input delays
 }
 
 /**
@@ -755,7 +763,24 @@ uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id,
   (void)buffer;
   (void)reqlen;
 
+  // Looks like this is never being called - but keep the flash in case it happens
+  flashLED(4);
+
   return 0;
+
+  /*
+  if (report_id == 2 && report_type == HID_REPORT_TYPE_OUTPUT )   // try & report debug info back out this way
+  {
+    flashLED(4);
+     for (int i = 0; i < 40; i++)
+    {
+      buffer[i] = 0;      // just clear it out for the moment
+    }
+    uint16_t returnLength = 40;
+    return returnLength;
+  }
+  */
+
 }
 
 // Invoked when received SET_REPORT control request or
@@ -765,37 +790,41 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
                            uint16_t bufsize) 
 {
   (void)itf;
-  //flashLED();
+  
+  /*
+  if (FirstFlash == false)
+  {
+    flashLED(4);    // something to show we got summat
+    flashLED(report_id);   // should be 2
+    flashLED(report_type);  // should be 2
+    FirstFlash = true;
+  }
+  */
 
- // if (report_id == 2 && report_type == HID_REPORT_TYPE_OUTPUT &&
- //     buffer[0] == 2 && bufsize >= sizeof(lights_report))  // light data
-  if (report_id == 2 && report_type == HID_REPORT_TYPE_OUTPUT )   // report 1 if part of "joystick"
+ 
+  if (report_id == 2 && report_type == HID_REPORT_TYPE_OUTPUT )   // 
   {
 
     //flashLED();
-    //if ( buffer[0] == 2) //?? do we need to check for a set report type??
+    if (bufsize >= sizeof(LEDs))  // light data
     {
-      //flashLED();
-      if (bufsize >= sizeof(lights_report))  // light data
-      {
 
-        //flashLED(1);
-        size_t i = 0;
-        for (i = 0; i < sizeof(lights_report); i++) 
-        {
-          lights_report.raw[i] = buffer[i + 2];   // increased this to +2 as seemed ignore report id & datatype
-        }
-        reactive_timeout_count = 0;
-        leds_changed = true;
-      }
-      else
+      //flashLED(2);
+      size_t i = 0;
+      for (i = 0; i < sizeof(LEDs); i++) 
       {
-        flashLED(bufsize);    // uhoh!
-          sleep_ms(1000);      // and add a gap to show space between patterns 
-        flashLED(sizeof(lights_report));    // to compare
-
+        LEDs[i] = buffer[i + 2];   // increased this by 2 to ignore report id & datatype
       }
+      reactive_timeout_count = 0;
+      leds_changed = true;
+    }
+    else
+    {
+      flashLED(bufsize);    // uhoh!
+      sleep_ms(1000);      // and add a gap to show space between patterns 
+      flashLED(sizeof(LEDs));    // to compare
 
     }
+
   }
 }
